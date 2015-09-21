@@ -1,10 +1,11 @@
 // Do not remove the include below
 #include "Senser.h"
+#include "DHT.h"
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <DHT22.h>
 
-#define DHT22_PIN 7
+
+#define DHT_PIN 8
 #define LCD_ADRESS 0x20
 #define BUTTON_PIN 2
 #define MOTION_DETECTOR_PIN 3
@@ -15,15 +16,21 @@
 #define SENSOR_CHANGE_TRIGGER_TIME 500
 #define MAX_ON_TIME 60000
 #define INIT_SENSOR 0
+
 #define TEMPERATURE_SENSOR_NUM 0
 #define HUMIDITY_SENSOR_NUM 1
 #define SOIL_SENSOR_NUM 2
 
 LiquidCrystal_I2C lcd(LCD_ADRESS,16,2);
-DHT22 dhtSensor(DHT22_PIN);
+DHT dht(DHT_PIN, DHT22);
+
 volatile unsigned int sensor = INIT_SENSOR;
 volatile unsigned long lastTrigger;
 volatile unsigned long lastMotionDetected;
+
+float temperature = 0;
+float humidity = 0;
+
 
 //The setup function is called once at startup of the sketch
 void setup()
@@ -36,6 +43,8 @@ void setup()
 	lcd.init();
 	attachInterrupt(digitalPinToInterrupt(BUTTON_PIN), sensorChange, FALLING);
 	attachInterrupt(digitalPinToInterrupt(MOTION_DETECTOR_PIN), motionDetected, CHANGE);
+	dht.begin();
+	delay(3000);
 }
 
 // The loop function is called in an endless loop
@@ -43,10 +52,9 @@ void loop()
 {
 	delay(SENSOR_CHANGE_TRIGGER_TIME);
 	unsigned long unchangedTime = millis() - lastMotionDetected;
-	Serial.println(unchangedTime);
 	if (unchangedTime < MAX_ON_TIME) {
+		lcd.display();
 		lcd.backlight();
-		lcd.clear();
 		switch(sensor) {
 			case TEMPERATURE_SENSOR_NUM:
 				setTemperature();
@@ -59,13 +67,13 @@ void loop()
 				break;
 		}
 	} else {
+		lcd.noDisplay();
 		lcd.noBacklight();
 	}
-	delay(1000);
+	delay(2000);
 }
 
 void motionDetected() {
-	Serial.println("Motion detected");
 	lastMotionDetected = millis();
 }
 
@@ -79,15 +87,30 @@ void sensorChange() {
 }
 
 void setTemperature() {
-	lcd.print("Temperature ");
-	lcd.print(dhtSensor.getTemperatureC());
-	lcd.print(" celsius");
+	float newTemperature = dht.readTemperature(false);
+	if (newTemperature != temperature) {
+		lcd.clear();
+		lcd.print("Temperature");
+		lcd.setCursor(0,1);
+		lcd.print(newTemperature);
+		lcd.print(" C");
+		temperature = newTemperature;
+	}
 }
 void setHumidity() {
-	lcd.print("Humidity ");
-	lcd.print(dhtSensor.getHumidity());
-	lcd.print(" ");
+	float newHumidity = dht.readHumidity();
+	if (newHumidity != humidity) {
+		lcd.clear();
+		lcd.print("Humidity");
+		lcd.setCursor(0,1);
+		lcd.print(newHumidity);
+		lcd.print(" %");
+		humidity = newHumidity;
+	}
 }
 void setSoilHumidity() {
-	lcd.print("Soil moisture ");
+	lcd.clear();
+	lcd.print("Soil moisture");
+	lcd.setCursor(0,1);
+	lcd.print("Soil moisture");
 }
