@@ -21,6 +21,7 @@ void motionDetected();
 void setTemperature();
 void setHumidity();
 void setSoilHumidity();
+void setPressure();
 #ifdef __cplusplus
 } // extern "C"
 #endif
